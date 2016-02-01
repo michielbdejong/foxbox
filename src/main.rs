@@ -19,6 +19,7 @@ extern crate router;
 extern crate serde;
 extern crate staticfile;
 extern crate uuid;
+extern crate websocket;
 
 mod context;
 mod dummy_adapter;
