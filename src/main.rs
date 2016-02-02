@@ -11,6 +11,7 @@
 
 extern crate core;
 extern crate getopts;
+extern crate hyper;
 #[macro_use]
 extern crate iron;
 extern crate mio;
@@ -27,6 +28,7 @@ mod events;
 mod http_server;
 mod service;
 mod controler;
+mod websocket_server;
 
 use context::Context;
 use controler::Controler;

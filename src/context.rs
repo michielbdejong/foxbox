@@ -74,4 +74,8 @@ impl Context {
     pub fn http_as_addrs(&self) -> Result<IntoIter<SocketAddr>, Error> {
         (self.hostname.as_str(), self.http_port).to_socket_addrs()
     }
+
+    pub fn ws_as_addrs(&self) -> Result<IntoIter<SocketAddr>, Error> {
+        (self.hostname.as_str(), self.ws_port).to_socket_addrs()
+    }
 }

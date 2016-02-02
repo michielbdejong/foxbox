@@ -5,6 +5,7 @@ authors = ["fabrice <fabrice@desre.org>"]
 
 [dependencies]
 getopts = "*"
+hyper = "*"
 iron = "*"
 mio = { git = "https://github.com/carllerche/mio.git" }
 mount = "*"
