@@ -3,14 +3,36 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use context::SharedContext;
-use hyper::uri::RequestUri;
 use std::thread;
-use websocket::{Server, Message, Sender, Receiver};
-use websocket::message::Type;
-use websocket::header::WebSocketProtocol;
+use ws::{listen, Handler, Sender, Result, Message, CloseCode};
 
 pub struct WebsocketServer {
     context: SharedContext
+}
+
+struct WebsocketHandler {
+    out: Sender,
+}
+
+impl Handler for WebsocketHandler {
+
+    fn on_message(&mut self, msg: Message) -> Result<()> {
+        // Echo the message back
+        self.out.send(msg)
+    }
+
+    fn on_close(&mut self, code: CloseCode, reason: &str) {
+        // The WebSocket protocol allows for a utf8 reason for the closing state after the
+        // close code. WS-RS will attempt to interpret this data as a utf8 description of the
+        // reason for closing the connection. I many cases, `reason` will be an empty string.
+        // So, you may not normally want to display `reason` to the user,
+        // but let's assume that we know that `reason` is human-readable.
+        match code {
+            CloseCode::Normal => println!("The client is done with the connection."),
+            CloseCode::Away   => println!("The client is leaving the site."),
+            _ => println!("The client encountered an error: {}", reason),
+        }
+    }
 }
 
 impl WebsocketServer {
@@ -20,87 +42,12 @@ impl WebsocketServer {
 
     pub fn start(&self) {
         let addrs: Vec<_> = self.context.lock().unwrap().ws_as_addrs().unwrap().collect();
-        let server = Server::bind(addrs[0]).unwrap();
 
-        let context = self.context.clone();
-        thread::spawn(move || {
-            for connection in server {
-                let ctxt1 = context.clone();
-                // Spawn a new thread for each connection.
-                thread::spawn(move || {
-                    let request = connection.unwrap().read_request().unwrap();
-                    let url = request.url.clone();
-
-                    // Extract the service id from the url path.
-                    let service_id = match url {
-                        RequestUri::AbsolutePath(path) => {
-                            println!("AbsolutePath {}", path);
-                            path[1..].to_string()
-                        },
-                        _ => {
-                            println!("Unsupported url");
-                            "".to_string()
-                        }
-                    };
-
-                    // Incorrect url, bail out.
-                    if service_id.is_empty() {
-                        request.fail();
-                        return;
-                    }
-
-                    let ctxt2 = ctxt1.clone();
-                    let ctxt3 = ctxt2.lock().unwrap();
-                    match ctxt3.get_service(&service_id) {
-                        Some(service) => {
-                            let response = request.accept();
-                            // Send the response
-                            let mut client = response.send().unwrap_or_else(|err| {
-                               println!("Unable to send response: {}", err);
-                               panic!("oops");
-                            });
-
-                            let ip = client.get_mut_sender()
-                                .get_mut()
-                                .peer_addr()
-                                .unwrap();
-
-                            println!("WebSocket Connection from {}", ip);
-                        },
-                        None => {
-                            println!("No such service: {}", service_id);
-                            request.fail();
-                            return;
-                        }
-                    }
-
-                    /*let message: Message = Message::text(format!("Hello from {}", service_id));
-                    client.send_message(&message).unwrap_or_else(|err| {
-                       println!("Unable to send message: {}", err);
-                       panic!("oops");
-                    });
-
-                    let (mut sender, mut receiver) = client.split();
-
-                    for message in receiver.incoming_messages() {
-                        let message: Message = message.unwrap();
-
-                        match message.opcode {
-                            Type::Close => {
-                                let message = Message::close();
-                                sender.send_message(&message).unwrap();
-                                println!("Client {} disconnected", ip);
-                                return;
-                            },
-                            Type::Ping => {
-                                let message = Message::pong(message.payload);
-                                sender.send_message(&message).unwrap();
-                            }
-                            _ => sender.send_message(&message).unwrap(),
-                        }
-                    }*/
-                });
-            }
-        });
+        thread::Builder::new().name("WebsocketServer".to_string())
+                              .spawn(move || {
+            listen(addrs[0], |out| {
+                WebsocketHandler { out: out }
+            }).unwrap()
+        }).unwrap();
     }
 }
