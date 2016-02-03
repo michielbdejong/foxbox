@@ -64,7 +64,9 @@ impl mio::Handler for Controler {
                 // case.
                 match context.get_service(&id) {
                     None => panic!(format!("Missing service with id {}", id)),
-                    Some(_) => {}
+                    Some(service) => {
+                        context.notify_new_service(service);
+                    }
                 }
 
                 println!("ServiceStart {} We now have {} services.", id, context.services_count());

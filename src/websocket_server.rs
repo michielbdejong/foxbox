@@ -3,45 +3,86 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use context::SharedContext;
+use std::sync::Arc;
 use std::thread;
 use ws::{Builder, Error, ErrorKind, Factory, Handler, Handshake, Sender, Request, Response, Result, Message, CloseCode};
+use std::cell::RefCell;
 
 pub struct WebsocketServer {
     context: SharedContext
 }
 
-struct WebsocketHandler {
+enum HandlerKind {
+    Unknown,
+    // Global messages related to service discovery.
+    Global,
+    // Service specific messages.
+    Service
+}
+
+pub struct WebsocketHandler {
     out: Sender,
-    context: SharedContext
+    context: SharedContext,
+    kind: HandlerKind,
+    service_id: Option<String>
+}
+
+impl Drop for WebsocketHandler {
+    fn drop(&mut self) {
+        let svc = self.service_id.clone().unwrap_or("".to_owned()).clone();
+        println!("dropping WebsocketHandler {}", svc);
+        // TODO: unregister ourselves from context.
+    }
 }
 
 impl Handler for WebsocketHandler {
     // Check if the path matches a service id, and close the connection
-    // if not.
+    // if this is not the case.
     fn on_request(&mut self, req: &Request) -> Result<Response> {
         println!("on_request {}", req.resource());
-        let service_id = &req.resource()[1..];
-        println!(" service id is {}", service_id);
+        let service = req.resource()[1..].to_owned();
+        self.service_id = Some(service.clone());
 
         // Hardcoded endpoint where clients can listen to general notifications,
-        // like device joining and departing.
-        if service_id == "services" {
+        // like services starting and stoping.
+        if service == "services".to_owned() {
             let res = try!(Response::from_request(req));
+            self.kind = HandlerKind::Global;
             return Ok(res);
         }
 
         // Look for a service.
-        match self.context.lock().unwrap().get_service(service_id) {
+        let mut guard = self.context.lock().unwrap();
+        match guard.get_service(&service) {
             None => Err(Error::new(ErrorKind::Internal, "No such service")),
             Some(_) => {
                 let res = try!(Response::from_request(req));
+                {
+                    self.kind = HandlerKind::Service;
+                }
+
+                //let ctxt = self.context.clone();
+                // Let's attach add reference to ourselves into the
+                // Context's websocket vector.
+                //
+                // This fails with "cannot move out of borrowed content [E0507]" :
+
+                // guard.add_ws(Arc::new(*self));
                 Ok(res)
             }
         }
     }
 
     fn on_open(&mut self, shake: Handshake) -> Result<()> {
-        println!("on_open {}", shake.request.resource());
+        let service = shake.request.resource()[1..].to_owned();
+        println!("on_open");
+
+        if service == "services" {
+            // Bind to the global websocket broadcaster.
+        } else {
+            // Bind to a service websocket broadcaster.
+        }
+
         Ok(())
     }
 
@@ -83,7 +124,9 @@ impl Factory for WebsocketFactory {
         let ctx = self.context.clone();
         WebsocketHandler {
             out: sender,
-            context: ctx
+            context: ctx,
+            kind: HandlerKind::Unknown,
+            service_id: None
         }
     }
 }
@@ -100,8 +143,8 @@ impl WebsocketServer {
         let context = self.context.clone();
         thread::Builder::new().name("WebsocketServer".to_owned())
                               .spawn(move || {
-            let factory = WebsocketFactory::new(context);
-            Builder::new().build(factory).unwrap().listen(addrs[0]).unwrap();
+            Builder::new().build(WebsocketFactory::new(context)).unwrap()
+                          .listen(addrs[0]).unwrap();
         }).unwrap();
     }
 }

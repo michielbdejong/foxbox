@@ -12,6 +12,8 @@ use std::io::Error;
 use std::net::SocketAddr;
 use std::net::ToSocketAddrs;
 use std::sync::{ Arc, Mutex };
+use websocket_server::WebsocketHandler;
+use std::cell::RefCell;
 
 // The `global` context available to all.
 pub struct Context {
@@ -20,7 +22,9 @@ pub struct Context {
     hostname: String,
     http_port: u16,
     ws_port: u16,
-    services: HashMap<String, Box<Service>>
+    services: HashMap<String, Box<Service>>,
+
+    websockets: Vec<Arc<WebsocketHandler>>
 }
 
 const DEFAULT_HTTP_PORT: u16 = 3000;
@@ -32,6 +36,7 @@ pub type SharedContext = Arc<Mutex<Context>>;
 impl Context {
     pub fn new(verbose: bool, hostname: Option<String>) -> Context {
         Context { services: HashMap::new(),
+                  websockets: Vec::new(),
                   verbose: verbose,
                   hostname:  hostname.unwrap_or(DEFAULT_HOSTNAME.to_owned()),
                   http_port: DEFAULT_HTTP_PORT,
@@ -59,6 +64,10 @@ impl Context {
         self.services.get(id)
     }
 
+    pub fn notify_new_service(&self, service: &Box<Service>) {
+        // Will iterate over global_ws to notify about service information.
+    }
+
     pub fn services_as_json(&self) -> Result<String, serde_json::error::Error> {
         serde_json::to_string(&self.services)
     }
@@ -77,5 +86,9 @@ impl Context {
 
     pub fn ws_as_addrs(&self) -> Result<IntoIter<SocketAddr>, Error> {
         (self.hostname.as_str(), self.ws_port).to_socket_addrs()
+    }
+
+    pub fn add_ws(&mut self, ws: Arc<WebsocketHandler>) {
+        self.websockets.push(ws);
     }
 }
