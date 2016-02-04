@@ -3,5 +3,6 @@ rust:
     - nightly
 script:
     - hostname foxbox
+    - bash ./scripts/make-root-ca-and-certificates.sh foxbox.local
     - cargo build
     - RUST_BACKTRACE=1 cargo test
