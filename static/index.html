@@ -2,8 +2,55 @@
 <html>
   <head>
     <title>FoxLink</title>
+    <meta charset="utf-8">
   </head>
   <body>
     <h1>Welcome To FoxLink!</h1>
+    <p>
+      <label for="pwd1">Please choose an admin password (8 characters minimal):</label>
+      <input type="password" id="pwd1">
+    </p>
+    <p>
+      <label for="pwd1">Please repeat your admin password:</label>
+      <input type="password" id="pwd2">
+    </p>
+    <p>
+      <input type="submit" value="Set" onclick="setPassword();">
+    </p>
   </body>
+  <script>
+    function success() {
+      document.body.innerHTML =
+        '<h1>Thank you!</h1>' +
+        '<p>Now please us an app like <a href="http://example.com/">http://example.com/</a> to connect your IoT '+
+        'devices and set everything up. Please write down the following information:</p>' +
+        '<ul><li>FoxBox location (\'' +
+        window.location.href +
+        '\')</li>' +
+        '<li>Your username (\'admin\')</li>' +
+        '<li>Your password (the one you just created).</li></ul></p>';
+    }
+    function setPassword() {
+      var pwd = document.getElementById('pwd1').value;
+      if (document.getElementById('pwd2').value != pwd) {
+        window.alert('Passwords don\'t match! Please try again.');
+        return;
+      }
+      if (pwd.length < 8) {
+        window.alert('Please use a password of at least 8 characters.');
+        return;
+      }
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', '/v1/users/admin', true);
+      xhr.onload = function() {
+        if (xhr.status != 201) {
+          console.log('TO DO: Deal with unsuccessful API response', xhr.status, xhr.responseText);
+        }
+        success();
+      }
+      xhr.send(JSON.stringify({
+        password: pwd
+      }));
+    }
+  </script>
 </html>
