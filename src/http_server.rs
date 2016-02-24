@@ -20,7 +20,7 @@ impl<T: Controller> HttpServer<T> {
         HttpServer { controller: controller }
     }
 
-    pub fn start(&mut self) {
+    pub fn start(&mut self, cert: PathBuf, key: PathBuf) {
         let router = service_router::create(self.controller.clone());
 
         let mut mount = Mount::new();
@@ -30,12 +30,9 @@ impl<T: Controller> HttpServer<T> {
 
         let addrs: Vec<_> = self.controller.http_as_addrs().unwrap().collect();
 
-        let cert = "certs/server/foxbox.local-server.crt.pem";
-        let key =  "certs/server/foxbox.local-server.key.pem";
-
-        thread::Builder::new().name("HttpServer".to_owned())
+        thread::Builder::new().name("LocalHttpServer".to_owned())
                               .spawn(move || {
-            Iron::new(mount).https(addrs[0], PathBuf::from(cert), PathBuf::from(key)).unwrap();
+            Iron::new(mount).https(addrs[0], cert, key).unwrap();
         }).unwrap();
     }
 }

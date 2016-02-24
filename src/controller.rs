@@ -18,12 +18,15 @@ use std::collections::hash_map::HashMap;
 use std::io;
 use std::net::SocketAddr;
 use std::net::ToSocketAddrs;
+use std::path::PathBuf;
 use std::sync::{ Arc, Mutex };
 use ws_server::WsServer;
 use ws;
 
 #[derive(Clone)]
 pub struct FoxBox {
+    local_tls_crt: PathBuf,
+    local_tls_key: PathBuf,
     pub verbose: bool,
     hostname: String,
     http_port: u16,
@@ -47,6 +50,8 @@ pub trait Controller : Send + Sync + Clone + Reflect + 'static {
     fn get_service_properties(&self, id: String) -> Option<ServiceProperties>;
     fn services_count(&self) -> usize;
     fn services_as_json(&self) -> Result<String, serde_json::error::Error>;
+    fn get_local_tls_key(&self) -> PathBuf;
+    fn get_local_tls_crt(&self) -> PathBuf;
     fn get_http_root_for_service(&self, service_id: String) -> String;
     fn get_ws_root_for_service(&self, service_id: String) -> String;
     fn http_as_addrs(&self) -> Result<IntoIter<SocketAddr>, io::Error>;
@@ -63,7 +68,14 @@ impl FoxBox {
                http_port: Option<u16>,
                ws_port: Option<u16>) -> Self {
 
+        let hostname = hostname.unwrap_or(DEFAULT_HOSTNAME.to_owned());
+
+        let local_crt = PathBuf::from(format!("certs/server/{}-server.crt.pem", hostname));
+        let local_key = PathBuf::from(format!("certs/server/{}-server.key.pem", hostname));
+
         FoxBox {
+            local_tls_key: local_key,
+            local_tls_crt: local_crt,
             services: Arc::new(Mutex::new(HashMap::new())),
             websockets: Arc::new(Mutex::new(HashMap::new())),
             verbose: verbose,
@@ -83,7 +95,7 @@ impl Controller for FoxBox {
 
         let mut event_loop = mio::EventLoop::new().unwrap();
 
-        HttpServer::new(self.clone()).start();
+        HttpServer::new(self.clone()).start(self.get_local_tls_crt(), self.get_local_tls_key());
         WsServer::start(self.clone(), self.hostname.to_owned(), self.ws_port);
         AdapterManager::new(self.clone()).start();
         event_loop.run(&mut FoxBoxEventLoop { controller: self.clone() }).unwrap();
@@ -143,6 +155,14 @@ impl Controller for FoxBox {
             array.push(service);
         }
         serde_json::to_string(&array)
+    }
+
+    fn get_local_tls_crt(&self) -> PathBuf {
+        self.local_tls_crt.clone()
+    }
+
+    fn get_local_tls_key(&self) -> PathBuf {
+        self.local_tls_key.clone()
     }
 
     fn get_http_root_for_service(&self, service_id: String) -> String {
@@ -217,7 +237,7 @@ describe! controller {
         it "should create http root" {
             controller.add_service(Box::new(service));
             assert_eq!(controller.get_http_root_for_service("1".to_string()),
-                       "http://foxbox.local:3000/services/1/");
+                       "https://foxbox.local:3000/services/1/");
         }
 
         it "should create ws root" {
