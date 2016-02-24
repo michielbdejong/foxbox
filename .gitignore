@@ -19,3 +19,6 @@ node_modules
 # Folders created by various IDEs
 .vscode
 .idea
+
+# Generated certs
+certs
