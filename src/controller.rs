@@ -146,7 +146,7 @@ impl Controller for FoxBox {
     }
 
     fn get_http_root_for_service(&self, service_id: String) -> String {
-        format!("http://{}:{}/services/{}/", self.hostname, self.http_port, service_id)
+        format!("https://{}:{}/services/{}/", self.hostname, self.http_port, service_id)
     }
 
     fn get_ws_root_for_service(&self, service_id: String) -> String {

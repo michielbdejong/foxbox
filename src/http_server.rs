@@ -8,7 +8,7 @@ use foxbox_users::users_router::UsersRouter;
 use iron::Iron;
 use mount::Mount;
 use staticfile::Static;
-use std::path::Path;
+use std::path::{ PathBuf, Path };
 use std::thread;
 
 pub struct HttpServer<T: Controller> {
@@ -32,7 +32,7 @@ impl<T: Controller> HttpServer<T> {
 
         thread::Builder::new().name("HttpServer".to_owned())
                               .spawn(move || {
-            Iron::new(mount).http(addrs[0]).unwrap();
+            Iron::new(mount).https(addrs[0], PathBuf::from("certs/foxbox.local-server.crt.pem"), PathBuf::from("certs/foxbox.local-server.key.pem")).unwrap();
         }).unwrap();
     }
 }
