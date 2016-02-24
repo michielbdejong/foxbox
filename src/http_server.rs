@@ -30,6 +30,8 @@ impl<T: Controller> HttpServer<T> {
 
         let addrs: Vec<_> = self.controller.http_as_addrs().unwrap().collect();
 
+        debug!("Starting server with cert: {:?} and key: {:?}", cert, key);
+
         thread::Builder::new().name("LocalHttpServer".to_owned())
                               .spawn(move || {
             Iron::new(mount).https(addrs[0], cert, key).unwrap();
