@@ -30,9 +30,12 @@ impl<T: Controller> HttpServer<T> {
 
         let addrs: Vec<_> = self.controller.http_as_addrs().unwrap().collect();
 
+        let cert = "certs/server/foxbox.local-server.crt.pem";
+        let key =  "certs/server/foxbox.local-server.key.pem";
+
         thread::Builder::new().name("HttpServer".to_owned())
                               .spawn(move || {
-            Iron::new(mount).https(addrs[0], PathBuf::from("certs/foxbox.local-server.crt.pem"), PathBuf::from("certs/foxbox.local-server.key.pem")).unwrap();
+            Iron::new(mount).https(addrs[0], PathBuf::from(cert), PathBuf::from(key)).unwrap();
         }).unwrap();
     }
 }
