@@ -38,6 +38,8 @@ extern crate libc;
 extern crate log;
 extern crate mio;
 extern crate mount;
+extern crate openssl;
+extern crate openssl_sys;
 extern crate router;
 extern crate rustc_serialize;
 extern crate serde;
