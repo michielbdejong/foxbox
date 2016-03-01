@@ -60,6 +60,8 @@ mod http_server;
 mod managed_process;
 mod registration;
 mod service;
+mod tls_config;
+mod tunnel_controller;
 mod service_router;
 mod tunnel_controller;
 mod ws_server;
