@@ -72,7 +72,9 @@ impl FoxBox {
                http_port: Option<u16>,
                ws_port: Option<u16>) -> Self {
 
-        let hostname = hostname.unwrap_or(DEFAULT_HOSTNAME.to_owned());
+        let hostname = hostname.map_or(DEFAULT_HOSTNAME.to_owned(), |name| {
+            format!("{}{}", name, DEFAULT_DOMAIN)
+        });
 
         let local_crt = PathBuf::from(format!("certs/server/{}-server.crt.pem", hostname));
         let local_key = PathBuf::from(format!("certs/server/{}-server.key.pem", hostname));
@@ -88,9 +90,7 @@ impl FoxBox {
             services: Arc::new(Mutex::new(HashMap::new())),
             websockets: Arc::new(Mutex::new(HashMap::new())),
             verbose: verbose,
-            hostname: hostname.map_or(DEFAULT_HOSTNAME.to_owned(), |name| {
-                format!("{}{}", name, DEFAULT_DOMAIN)
-            }),
+            hostname: hostname,
             http_port: http_port.unwrap_or(DEFAULT_HTTP_PORT),
             ws_port: ws_port.unwrap_or(DEFAULT_WS_PORT)
         }
