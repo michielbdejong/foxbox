@@ -27,6 +27,8 @@ use ws;
 pub struct FoxBox {
     local_tls_crt: PathBuf,
     local_tls_key: PathBuf,
+    remote_tls_crt: PathBuf,
+    remote_tls_key: PathBuf,
     pub verbose: bool,
     hostname: String,
     http_port: u16,
@@ -50,8 +52,10 @@ pub trait Controller : Send + Sync + Clone + Reflect + 'static {
     fn get_service_properties(&self, id: String) -> Option<ServiceProperties>;
     fn services_count(&self) -> usize;
     fn services_as_json(&self) -> Result<String, serde_json::error::Error>;
-    fn get_local_tls_key(&self) -> PathBuf;
-    fn get_local_tls_crt(&self) -> PathBuf;
+    fn get_local_tls_key(&self)  -> PathBuf;
+    fn get_local_tls_crt(&self)  -> PathBuf;
+    fn get_remote_tls_key(&self) -> PathBuf;
+    fn get_remote_tls_crt(&self) -> PathBuf;
     fn get_http_root_for_service(&self, service_id: String) -> String;
     fn get_ws_root_for_service(&self, service_id: String) -> String;
     fn http_as_addrs(&self) -> Result<IntoIter<SocketAddr>, io::Error>;
@@ -73,9 +77,14 @@ impl FoxBox {
         let local_crt = PathBuf::from(format!("certs/server/{}-server.crt.pem", hostname));
         let local_key = PathBuf::from(format!("certs/server/{}-server.key.pem", hostname));
 
+        let remote_crt = PathBuf::from(format!("certs/server/{}-server.crt.pem", "test.knilxof.org"));
+        let remote_key = PathBuf::from(format!("certs/server/{}-server.key.pem", "test.knilxof.org"));
+
         FoxBox {
             local_tls_key: local_key,
             local_tls_crt: local_crt,
+            remote_tls_key: remote_key,
+            remote_tls_crt: remote_crt,
             services: Arc::new(Mutex::new(HashMap::new())),
             websockets: Arc::new(Mutex::new(HashMap::new())),
             verbose: verbose,
@@ -163,6 +172,14 @@ impl Controller for FoxBox {
 
     fn get_local_tls_key(&self) -> PathBuf {
         self.local_tls_key.clone()
+    }
+
+    fn get_remote_tls_crt(&self) -> PathBuf {
+        self.remote_tls_crt.clone()
+    }
+
+    fn get_remote_tls_key(&self) -> PathBuf {
+        self.remote_tls_key.clone()
     }
 
     fn get_http_root_for_service(&self, service_id: String) -> String {

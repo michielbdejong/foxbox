@@ -34,6 +34,8 @@ impl TlsSniConfig {
     pub fn add_ssl_cert<C, K>(&mut self, hostname: String, crt: C, key: K) -> Result<(), SslError>
         where C: AsRef<Path>, K: AsRef<Path> {
 
+        debug!("Adding SSL certificate for hostname {}", hostname);
+
         let mut ctx = try!(SslContext::new(SslMethod::Sslv23));
         try!(ctx.set_cipher_list("DEFAULT"));
         try!(ctx.set_certificate_file(crt.as_ref(), X509FileType::PEM));
@@ -54,6 +56,8 @@ impl TlsSniConfig {
         }
 
         let requested_hostname = requested_hostname.unwrap();
+
+        debug!("Selecting certificate for host {}", requested_hostname);
 
         let ssl_context_for_hostname = configured_certs.get(&requested_hostname);
 
@@ -76,6 +80,7 @@ impl TlsSniConfig {
 
         let configured_certs = self.ssl_hosts.clone();
 
+        debug!("Initialising certificates");
         for (_, mut ctx) in &mut self.ssl_hosts {
             ctx.set_servername_callback_with_data(Self::servername_callback, configured_certs.clone());
         }

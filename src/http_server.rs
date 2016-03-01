@@ -72,8 +72,8 @@ impl<T: Controller> HttpServer<T> {
 
         let mut config = TlsSniConfig::new();
         config.add_ssl_cert("foxbox.local".to_owned(), cert, key).unwrap();
+        config.add_ssl_cert("test.knilxof.org".to_owned(), self.controller.get_remote_tls_crt(), self.controller.get_remote_tls_key());
         config.init_ssl_context();
-
 
         let server_factory = HttpsServerFactory::new(config.context().unwrap());
 
