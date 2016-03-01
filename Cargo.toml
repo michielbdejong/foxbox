@@ -13,7 +13,7 @@ foxbox_users = { git = "https://github.com/fxbox/users.git", rev = "d00552c" }
 get_if_addrs = "0.3.1"
 hyper = "0.7.2"
 multicast_dns = { git = "https://github.com/fxbox/multicast-dns.git", rev = "0f211f0" }
-iron = "0.2.6"
+iron = { git = "https://github.com/samgiles/iron.git", rev="ssl-context" }
 libc = "0.2.7"
 log = "0.3"
 mio = { git = "https://github.com/carllerche/mio.git" }
