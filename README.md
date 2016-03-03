@@ -74,15 +74,24 @@ of your fork. If you need some guidance with this see:
 
 ## Setup
 
+Currently, the self-signed cert, the LetsEncrypt cert, and the client-cert for
+talking to the DNS server are all generated in different ways, so that requires
+a bit of clean up. But since this branch uses a nodejs proxy and bash scripts
+for several tasks, it needs cleaning up anyway. ;)
+
 ```bash
 $ git clone git@github.com:<username>/foxbox.git
-$ cd foxbox
+$ cd foxbox/scripts
+$ sh ./createClientCert.sh
+$ # answer 'asdf' for the passphrase questions, and '' for all other questions.
+$ cd ..
 ```
 
 ## Running the daemon
 
 ```bash
 $ cargo run
+$ node proxy.js
 ```
 
 To run with custom local host name (eg. foxbox.local):
